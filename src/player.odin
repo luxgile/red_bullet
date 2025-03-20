@@ -1,0 +1,95 @@
+package main
+
+import fmt "core:fmt"
+import math "core:math"
+import "core:math/linalg"
+import time "core:time"
+import rl "vendor:raylib"
+
+PLAYER_ACC :: 1500.0
+PLAYER_SPEED_LIMIT :: 200.0
+PLAYER_DAMPING :: 0.01
+
+PLAYER_DASH_FORCE :: 2000.0
+PLAYER_DASH_SPEED_LIMIT :: 500.0
+PLAYER_DASH_TIME :: 0.4
+
+MovementState :: enum {
+	Default,
+	Dashing,
+	Knockback,
+}
+
+Player :: struct {
+	input:          rl.Vector2,
+	velocity:       rl.Vector2,
+	position:       rl.Vector2,
+	size:           f32,
+	movement_state: MovementState,
+	dash_timer:     time.Stopwatch,
+	bullets:        [dynamic]Bullet,
+}
+
+player_input :: proc(player: ^Player) {
+	input: rl.Vector2
+	if rl.IsKeyDown(.W) do input.y = -1
+	if rl.IsKeyDown(.S) do input.y = 1
+	if rl.IsKeyDown(.A) do input.x = -1
+	if rl.IsKeyDown(.D) do input.x = 1
+	player.input = input
+
+	if rl.IsKeyPressed(.SPACE) && player.movement_state != .Dashing && linalg.length(input) > 0.1 {
+		direction := linalg.normalize(player.input)
+		player.velocity += PLAYER_DASH_FORCE * direction
+		player.movement_state = .Dashing
+		time.stopwatch_reset(&player.dash_timer)
+		time.stopwatch_start(&player.dash_timer)
+	}
+
+	if rl.IsMouseButtonPressed(.LEFT) {
+		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
+		dir := linalg.normalize(mouse_pos - player.position)
+		bullet := Bullet {
+			position  = player.position,
+			speed     = 300.0,
+			direction = dir,
+			size      = 4.0,
+		}
+		append(&player.bullets, bullet)
+	}
+}
+
+player_process :: proc(player: ^Player, dt: f32) {
+	if time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
+		player.movement_state = .Default
+	}
+
+	if linalg.length(player.input) > 0.01 {
+		limit: f32 =
+			player.movement_state == .Default ? PLAYER_SPEED_LIMIT : PLAYER_DASH_SPEED_LIMIT
+		acceleration := linalg.normalize(player.input) * dt * PLAYER_ACC
+		player.velocity = linalg.clamp_length(player.velocity + acceleration, limit)
+	}
+	player.position += player.velocity * dt
+	player.velocity *= math.pow(PLAYER_DAMPING, dt)
+
+	for &bullet, index in player.bullets {
+		bullet_process(&bullet, dt)
+
+		if bullet.is_dead {
+			unordered_remove(&player.bullets, index)
+		}
+	}
+}
+
+player_draw :: proc(player: ^Player) {
+	rl.DrawCircleV(
+		player.position,
+		player.size,
+		player.movement_state == .Default ? rl.GREEN : rl.DARKGREEN,
+	)
+
+	for &bullet in player.bullets {
+		bullet_draw(&bullet)
+	}
+}
