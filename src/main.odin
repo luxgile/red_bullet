@@ -3,6 +3,7 @@ package main
 import fmt "core:fmt"
 import math "core:math"
 import "core:math/linalg"
+import "core:strings"
 import time "core:time"
 import rl "vendor:raylib"
 
@@ -10,8 +11,11 @@ camera := rl.Camera2D{}
 player := Player{}
 enemies := [dynamic]Enemy{}
 
+score := 0
+
 main :: proc() {
-	rl.InitWindow(800, 450, "red bullet")
+	rl.InitWindow(1600, 900, "red bullet")
+	rl.SetTargetFPS(60)
 	defer rl.CloseWindow()
 
 	camera = rl.Camera2D {
@@ -23,19 +27,19 @@ main :: proc() {
 		size = 15.0,
 	}
 
-	// enemy := Enemy {
-	// 	target   = &player,
-	// 	position = {500.0, 250.0},
-	// 	size     = 10.0,
-	// }
-	// append(&enemies, enemy)
-	//
-	// enemy2 := Enemy {
-	// 	target   = &player,
-	// 	position = {-500.0, 250.0},
-	// 	size     = 10.0,
-	// }
-	// append(&enemies, enemy2)
+	enemy := Enemy {
+		target   = &player,
+		position = {500.0, 250.0},
+		size     = 10.0,
+	}
+	append(&enemies, enemy)
+
+	enemy2 := Enemy {
+		target   = &player,
+		position = {-500.0, 250.0},
+		size     = 10.0,
+	}
+	append(&enemies, enemy2)
 
 	vfx := VfxCpu {
 		is_one_shot = true,
@@ -59,9 +63,9 @@ main :: proc() {
 		vfx.position = player.position
 		vfx_process(&vfx, dt)
 
-    if rl.IsKeyPressed(.SPACE) {
-      vfx_play(&vfx)
-    }
+		if rl.IsKeyPressed(.SPACE) {
+			vfx_play(&vfx)
+		}
 
 		for &enemy, index in enemies {
 			if enemy.is_dead {
@@ -76,16 +80,27 @@ main :: proc() {
 		defer rl.EndDrawing()
 
 		rl.ClearBackground(rl.BLACK)
-		rl.DrawFPS(10, 10)
 
 		rl.BeginMode2D(camera)
-		defer rl.EndMode2D()
-
 
 		player_draw(&player)
 		vfx_draw(&vfx)
 		for &enemy in enemies {
 			enemy_draw(&enemy)
+		}
+
+		rl.EndMode2D()
+
+		rl.DrawFPS(10, 10)
+		rl.DrawText(
+			strings.clone_to_cstring(fmt.tprintf("Score: %v", score)),
+			100,
+			10,
+			20,
+			rl.WHITE,
+		)
+		if rl.GuiButton({f32(rl.GetScreenWidth()) - 90, 10, 80, 30}, "Exit") {
+			break
 		}
 	}
 }

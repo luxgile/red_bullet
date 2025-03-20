@@ -29,6 +29,7 @@ bullet_process :: proc(bullet: ^Bullet, dt: f32) {
 		if bullet_check_collision(bullet, &enemy) {
 			enemy.is_dead = true
 			bullet.is_dead = true
+      score += 1
 		}
 	}
 }
