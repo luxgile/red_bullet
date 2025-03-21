@@ -9,17 +9,25 @@ import rl "vendor:raylib"
 ENEMY_SPEED :: 100.0
 
 Enemy :: struct {
-	target:   ^Player,
 	position: rl.Vector2,
 	size:     f32,
   is_dead: bool,
 }
 
-enemy_process :: proc(enemy: ^Enemy, dt: f32) {
-  if enemy.target == nil do return 
-  if linalg.distance(enemy.target.position, enemy.position) < 0.01 do return
+g_enemies := [dynamic]Enemy{}
 
-  direction := linalg.normalize(enemy.target.position - enemy.position)
+enemy_spawn :: proc(pos: rl.Vector2) {
+  append(&g_enemies, Enemy {
+    position = pos,
+    size = 10.0
+  })
+}
+
+enemy_process :: proc(enemy: ^Enemy, dt: f32) {
+  if g_player == nil do return 
+  if linalg.distance(g_player.position, enemy.position) < 0.01 do return
+
+  direction := linalg.normalize(g_player.position - enemy.position)
   enemy.position += direction * ENEMY_SPEED * dt
 }
 

@@ -7,39 +7,30 @@ import "core:strings"
 import time "core:time"
 import rl "vendor:raylib"
 
+CAMERA_POS_SMOOTHNESS :: 0.92
+
 camera := rl.Camera2D{}
-player := Player{}
-enemies := [dynamic]Enemy{}
 
 score := 0
 
 main :: proc() {
+	rl.SetConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
 	rl.InitWindow(1600, 900, "red bullet")
 	rl.SetTargetFPS(60)
 	defer rl.CloseWindow()
 
+	bg_texture := rl.LoadTexture("assets/floor.png")
+	defer rl.UnloadTexture(bg_texture)
+
 	camera = rl.Camera2D {
-		offset = {f32(rl.GetScreenWidth()) / 2.0, f32(rl.GetScreenHeight()) / 2.0},
-		zoom   = 1.0,
+		zoom   = 2.0,
 	}
 
-	player = Player {
-		size = 15.0,
-	}
+	player_spawn()
+	defer free(g_player)
 
-	enemy := Enemy {
-		target   = &player,
-		position = {500.0, 250.0},
-		size     = 10.0,
-	}
-	append(&enemies, enemy)
-
-	enemy2 := Enemy {
-		target   = &player,
-		position = {-500.0, 250.0},
-		size     = 10.0,
-	}
-	append(&enemies, enemy2)
+	enemy_spawn({400.0, 250.0})
+	enemy_spawn({-400.0, 450.0})
 
 	vfx := VfxCpu {
 		is_one_shot = true,
@@ -57,19 +48,23 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
-		player_input(&player)
-		player_process(&player, dt)
 
-		vfx.position = player.position
+		player_input(g_player)
+		player_process(g_player, dt)
+
+    camera.offset = {f32(rl.GetScreenWidth()) / 2.0, f32(rl.GetScreenHeight()) / 2.0}
+		camera.target = linalg.lerp(g_player.position, camera.target, CAMERA_POS_SMOOTHNESS)
+
+		vfx.position = g_player.position
 		vfx_process(&vfx, dt)
 
 		if rl.IsKeyPressed(.SPACE) {
 			vfx_play(&vfx)
 		}
 
-		for &enemy, index in enemies {
+		for &enemy, index in g_enemies {
 			if enemy.is_dead {
-				unordered_remove(&enemies, index)
+				unordered_remove(&g_enemies, index)
 				continue
 			}
 
@@ -83,9 +78,11 @@ main :: proc() {
 
 		rl.BeginMode2D(camera)
 
-		player_draw(&player)
+		draw_floor(&bg_texture)
+
+		player_draw(g_player)
 		vfx_draw(&vfx)
-		for &enemy in enemies {
+		for &enemy in g_enemies {
 			enemy_draw(&enemy)
 		}
 
@@ -103,4 +100,15 @@ main :: proc() {
 			break
 		}
 	}
+}
+
+draw_floor :: proc(texture: ^rl.Texture2D) {
+	width := f32(rl.GetScreenWidth()) / 2.0
+	height := f32(rl.GetScreenHeight()) / 2.0
+	x := width / 2.0
+	y := height / 2.0
+	u := camera.target.x
+	w := camera.target.y
+	// Using tricks with the UVs, we get an infinite scrolling bg texture
+	rl.DrawTexturePro(texture^, {u, w, width, height}, {u, w, width, height}, {x, y}, 0, rl.WHITE)
 }

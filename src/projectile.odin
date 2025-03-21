@@ -25,7 +25,7 @@ bullet_process :: proc(bullet: ^Bullet, dt: f32) {
 
 	bullet.position += bullet.speed * dt * bullet.direction
 
-	for &enemy in enemies {
+	for &enemy in g_enemies {
 		if bullet_check_collision(bullet, &enemy) {
 			enemy.is_dead = true
 			bullet.is_dead = true

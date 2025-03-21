@@ -30,6 +30,19 @@ Player :: struct {
 	bullets:        [dynamic]Bullet,
 }
 
+g_player : ^Player
+
+player_spawn :: proc() -> (ok: bool) {
+  if g_player != nil do return false 
+
+  g_player = new(Player)
+  g_player^ = Player {
+    size = 15.0
+  }
+
+  return true
+}
+
 player_input :: proc(player: ^Player) {
 	input: rl.Vector2
 	if rl.IsKeyDown(.W) do input.y = -1
