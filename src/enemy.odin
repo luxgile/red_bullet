@@ -23,12 +23,12 @@ enemy_spawn :: proc(pos: rl.Vector2) {
   })
 }
 
-enemy_process :: proc(enemy: ^Enemy, dt: f32) {
-  if g_player == nil do return 
-  player_distance := linalg.distance(g_player.position, enemy.position)
-  if player_distance < enemy.size * 2.0 do load_level(&MainMenuLevel)
+enemy_process :: proc(using game: ^Game, enemy: ^Enemy, dt: f32) {
+  if player == nil do return 
+  player_distance := linalg.distance(player.position, enemy.position)
+  if player_distance < enemy.size * 2.0 do load_level(game, &MainMenuLevel)
 
-  direction := linalg.normalize(g_player.position - enemy.position)
+  direction := linalg.normalize(player.position - enemy.position)
   enemy.position += direction * ENEMY_SPEED * dt
 }
 

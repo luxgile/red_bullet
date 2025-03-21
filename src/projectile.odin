@@ -17,7 +17,7 @@ Bullet :: struct {
 	is_dead:        bool,
 }
 
-bullet_process :: proc(bullet: ^Bullet, dt: f32) {
+bullet_process :: proc(game: ^Game, bullet: ^Bullet, dt: f32) {
 	if time.duration_seconds(time.stopwatch_duration(bullet.lifetime_timer)) > BULLET_LIFETIME {
 		bullet.is_dead = true
 		return
@@ -29,7 +29,7 @@ bullet_process :: proc(bullet: ^Bullet, dt: f32) {
 		if bullet_check_collision(bullet, &enemy) {
 			enemy.is_dead = true
 			bullet.is_dead = true
-      score += 1
+      game.score += 1
 		}
 	}
 }

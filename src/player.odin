@@ -31,13 +31,11 @@ Player :: struct {
 	dash_vfx:       VfxCpu,
 }
 
-g_player: ^Player
+player_spawn :: proc(game: ^Game) -> (ok: bool) {
+	if game.player != nil do return false
 
-player_spawn :: proc() -> (ok: bool) {
-	if g_player != nil do return false
-
-	g_player = new(Player)
-	g_player^ = Player {
+	game.player = new(Player)
+	game.player^ = Player {
 		size = 15.0,
 		dash_vfx = VfxCpu {
 			is_one_shot = true,
@@ -56,7 +54,7 @@ player_spawn :: proc() -> (ok: bool) {
 	return true
 }
 
-player_input :: proc(player: ^Player) {
+player_input :: proc(game: ^Game, player: ^Player) {
 	input: rl.Vector2
 	if rl.IsKeyDown(.W) do input.y = -1
 	if rl.IsKeyDown(.S) do input.y = 1
@@ -74,7 +72,7 @@ player_input :: proc(player: ^Player) {
 	}
 
 	if rl.IsMouseButtonPressed(.LEFT) {
-		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), g_camera)
+		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), game.camera)
 		dir := linalg.normalize(mouse_pos - player.position)
 		bullet := Bullet {
 			position  = player.position,
@@ -86,8 +84,8 @@ player_input :: proc(player: ^Player) {
 	}
 }
 
-player_process :: proc(player: ^Player, dt: f32) {
-	player.dash_vfx.position = g_player.position
+player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
+	player.dash_vfx.position = player.position
 	vfx_process(&player.dash_vfx, dt)
 
 	if time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
@@ -104,7 +102,7 @@ player_process :: proc(player: ^Player, dt: f32) {
 	player.velocity *= math.pow(PLAYER_DAMPING, dt)
 
 	for &bullet, index in player.bullets {
-		bullet_process(&bullet, dt)
+		bullet_process(game, &bullet, dt)
 
 		if bullet.is_dead {
 			unordered_remove(&player.bullets, index)
