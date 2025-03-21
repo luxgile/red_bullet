@@ -25,7 +25,8 @@ enemy_spawn :: proc(pos: rl.Vector2) {
 
 enemy_process :: proc(enemy: ^Enemy, dt: f32) {
   if g_player == nil do return 
-  if linalg.distance(g_player.position, enemy.position) < 0.01 do return
+  player_distance := linalg.distance(g_player.position, enemy.position)
+  if player_distance < enemy.size * 2.0 do load_level(&MainMenuLevel)
 
   direction := linalg.normalize(g_player.position - enemy.position)
   enemy.position += direction * ENEMY_SPEED * dt

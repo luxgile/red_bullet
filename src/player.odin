@@ -28,19 +28,32 @@ Player :: struct {
 	movement_state: MovementState,
 	dash_timer:     time.Stopwatch,
 	bullets:        [dynamic]Bullet,
+	dash_vfx:       VfxCpu,
 }
 
-g_player : ^Player
+g_player: ^Player
 
 player_spawn :: proc() -> (ok: bool) {
-  if g_player != nil do return false 
+	if g_player != nil do return false
 
-  g_player = new(Player)
-  g_player^ = Player {
-    size = 15.0
-  }
+	g_player = new(Player)
+	g_player^ = Player {
+		size = 15.0,
+		dash_vfx = VfxCpu {
+			is_one_shot = true,
+			spawn_rate = 1000.0,
+			duration = 0.2,
+			spawn_mode = SpawnCircle{radius = 1},
+			max_lifetime = 0.4,
+			max_particles = 100,
+			size_mode = SizeOverLifetime{3.0, 0.0},
+			color_mode = ColorOverLifetime{rl.RED, {0, 0, 0, 0}},
+			spawn_velocity_mode = ExplosionSpawnVelocity{{100, 200}},
+			gravity = {0, 10},
+		},
+	}
 
-  return true
+	return true
 }
 
 player_input :: proc(player: ^Player) {
@@ -57,10 +70,11 @@ player_input :: proc(player: ^Player) {
 		player.movement_state = .Dashing
 		time.stopwatch_reset(&player.dash_timer)
 		time.stopwatch_start(&player.dash_timer)
+		vfx_play(&player.dash_vfx)
 	}
 
 	if rl.IsMouseButtonPressed(.LEFT) {
-		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), camera)
+		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), g_camera)
 		dir := linalg.normalize(mouse_pos - player.position)
 		bullet := Bullet {
 			position  = player.position,
@@ -73,6 +87,9 @@ player_input :: proc(player: ^Player) {
 }
 
 player_process :: proc(player: ^Player, dt: f32) {
+	player.dash_vfx.position = g_player.position
+	vfx_process(&player.dash_vfx, dt)
+
 	if time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
 		player.movement_state = .Default
 	}
@@ -101,6 +118,8 @@ player_draw :: proc(player: ^Player) {
 		player.size,
 		player.movement_state == .Default ? rl.GREEN : rl.DARKGREEN,
 	)
+
+	vfx_draw(&player.dash_vfx)
 
 	for &bullet in player.bullets {
 		bullet_draw(&bullet)
