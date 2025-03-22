@@ -27,8 +27,8 @@ Player :: struct {
 	size:           f32,
 	movement_state: MovementState,
 	dash_timer:     time.Stopwatch,
-	bullets:        [dynamic]Bullet,
 	dash_vfx:       VfxCpu,
+	weapon:         ^Weapon,
 }
 
 player_spawn :: proc(game: ^Game) -> (ok: bool) {
@@ -37,6 +37,7 @@ player_spawn :: proc(game: ^Game) -> (ok: bool) {
 	game.player = new(Player)
 	game.player^ = Player {
 		size = 15.0,
+		weapon = &WeaponGun,
 		dash_vfx = VfxCpu {
 			is_one_shot = true,
 			spawn_rate = 1000.0,
@@ -72,21 +73,21 @@ player_input :: proc(game: ^Game, player: ^Player) {
 	}
 
 	if rl.IsMouseButtonPressed(.LEFT) {
-		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), game.camera)
-		dir := linalg.normalize(mouse_pos - player.position)
-		bullet := Bullet {
-			position  = player.position,
-			speed     = 300.0,
-			direction = dir,
-			size      = 4.0,
-		}
-		append(&player.bullets, bullet)
+		player.weapon.on_shoot_start(game, player.weapon)
+    player.weapon = nil
 	}
 }
 
 player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 	player.dash_vfx.position = player.position
 	vfx_process(&player.dash_vfx, dt)
+
+	if player.weapon != nil {
+		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), game.camera)
+		mouse_dir := linalg.normalize(mouse_pos - player.position)
+		player.weapon.position = player.position + mouse_dir * 20.0
+		player.weapon.direction = mouse_dir
+	}
 
 	if time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
 		player.movement_state = .Default
@@ -100,14 +101,6 @@ player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 	}
 	player.position += player.velocity * dt
 	player.velocity *= math.pow(PLAYER_DAMPING, dt)
-
-	for &bullet, index in player.bullets {
-		bullet_process(game, &bullet, dt)
-
-		if bullet.is_dead {
-			unordered_remove(&player.bullets, index)
-		}
-	}
 }
 
 player_draw :: proc(player: ^Player) {
@@ -117,9 +110,9 @@ player_draw :: proc(player: ^Player) {
 		player.movement_state == .Default ? rl.GREEN : rl.DARKGREEN,
 	)
 
-	vfx_draw(&player.dash_vfx)
-
-	for &bullet in player.bullets {
-		bullet_draw(&bullet)
+	if player.weapon != nil {
+		player.weapon.on_draw(nil, player.weapon)
 	}
+
+	vfx_draw(&player.dash_vfx)
 }

@@ -7,11 +7,43 @@ import "core:strings"
 import time "core:time"
 import rl "vendor:raylib"
 
+EventQueue :: [dynamic]rawptr
+
+EventTable :: struct {
+	table: map[typeid]EventQueue,
+}
+
+event_table := EventTable{}
+
+listen :: proc($T: typeid, procedure: proc(event: T)) {
+	queue := event_table.table[T]
+	append(&queue, rawptr(procedure))
+	event_table.table[T] = queue
+}
+
+raise :: proc(event: $T) {
+	queue := event_table.table[T]
+	for listener in queue {
+		procedure := cast(proc(event: T))listener
+		procedure(event)
+	}
+}
+
+TestEventWithData :: struct {
+	msg: string,
+}
+
+on_event_with_data :: proc(event: TestEventWithData) {
+	fmt.println(event.msg)
+}
+
 Game :: struct {
 	camera:        rl.Camera2D,
 	current_level: ^Level,
 	score:         int,
 	player:        ^Player,
+	bullets:       [dynamic]Bullet,
+	enemies:       [dynamic]Enemy,
 }
 
 main :: proc() {
@@ -23,6 +55,10 @@ main :: proc() {
 	game := Game {
 		camera = rl.Camera2D{zoom = 2.0},
 	}
+
+	// listen(TestEventWithData, on_event_with_data)
+	// listen(TestEventWithData, proc(event: TestEventWithData) {fmt.println("Anonymous event!")})
+	// raise(TestEventWithData{msg = "Hello World from Event!"})
 
 	load_level(&game, &GameplayLevel)
 

@@ -45,8 +45,8 @@ GameplayLevel := Level {
 
 		player_spawn(game)
 
-		enemy_spawn({400.0, 250.0})
-		enemy_spawn({-400.0, 450.0})
+		// enemy_spawn(game, {400.0, 250.0})
+		// enemy_spawn(game, {-400.0, 450.0})
 	},
 	on_process = proc(game: ^Game, dt: f32) {
 		player_input(game, game.player)
@@ -59,9 +59,17 @@ GameplayLevel := Level {
 			CAMERA_POS_SMOOTHNESS,
 		)
 
-		for &enemy, index in g_enemies {
+		for &bullet, index in game.bullets {
+			bullet_process(game, &bullet, dt)
+
+			if bullet.is_dead {
+				unordered_remove(&game.bullets, index)
+			}
+		}
+
+		for &enemy, index in game.enemies {
 			if enemy.is_dead {
-				unordered_remove(&g_enemies, index)
+				unordered_remove(&game.enemies, index)
 				continue
 			}
 
@@ -77,7 +85,11 @@ GameplayLevel := Level {
 
 		player_draw(game.player)
 
-		for &enemy in g_enemies {
+		for &bullet in game.bullets {
+			bullet_draw(&bullet)
+		}
+
+		for &enemy in game.enemies {
 			enemy_draw(&enemy)
 		}
 

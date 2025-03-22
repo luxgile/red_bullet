@@ -14,10 +14,8 @@ Enemy :: struct {
   is_dead: bool,
 }
 
-g_enemies := [dynamic]Enemy{}
-
-enemy_spawn :: proc(pos: rl.Vector2) {
-  append(&g_enemies, Enemy {
+enemy_spawn :: proc(game: ^Game, pos: rl.Vector2) {
+  append(&game.enemies, Enemy {
     position = pos,
     size = 10.0
   })
