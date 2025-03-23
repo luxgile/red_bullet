@@ -72,7 +72,7 @@ player_input :: proc(game: ^Game, player: ^Player) {
 		vfx_play(&player.dash_vfx)
 	}
 
-	if rl.IsMouseButtonPressed(.LEFT) {
+	if rl.IsMouseButtonPressed(.LEFT) && player.weapon != nil {
 		player.weapon.on_shoot_start(game, player.weapon)
     player.weapon = nil
 	}
@@ -85,7 +85,7 @@ player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 	if player.weapon != nil {
 		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), game.camera)
 		mouse_dir := linalg.normalize(mouse_pos - player.position)
-		player.weapon.position = player.position + mouse_dir * 20.0
+		player.weapon.position = player.position + mouse_dir * 25.0
 		player.weapon.direction = mouse_dir
 	}
 

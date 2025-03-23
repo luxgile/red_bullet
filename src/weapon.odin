@@ -40,14 +40,16 @@ gun_shoot_start :: proc(game: ^Game, wp: ^Weapon) {
 	bullet_spawn(game, wp.position, dir)
 }
 gun_draw :: proc(game: ^Game, wp: ^Weapon) {
-	size := [2]f32{5, 5}
+	size := [2]f32{32, 32}
 	angle := linalg.angle_between(rl.Vector2{0.0, 1.0}, wp.direction)
 	if wp.direction.x > 0 do angle *= -1
   if !rl.IsTextureValid(wp.icon) do wp.icon = rl.LoadTexture(strings.clone_to_cstring(wp.icon_path))
-	rl.DrawRectanglePro(
+	rl.DrawTexturePro(
+    wp.icon,
+    {0, 0, 32, 32},
 		{wp.position.x, wp.position.y, size.x, size.y},
-		{0, 0},
-		linalg.to_degrees(angle),
-		rl.GREEN,
+		{size.x / 2.0, size.y / 2.0},
+		linalg.to_degrees(angle) + 90,
+		rl.WHITE,
 	)
 }
