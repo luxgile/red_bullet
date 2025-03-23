@@ -10,6 +10,7 @@ BULLET_SPEED :: 400.0
 BULLET_LIFETIME :: 10.0
 
 Bullet :: struct {
+	sprite_sheet:   SpriteSheet,
 	position:       rl.Vector2,
 	speed:          f32,
 	direction:      rl.Vector2,
@@ -19,11 +20,15 @@ Bullet :: struct {
 }
 
 bullet_spawn :: proc(game: ^Game, position, direction: rl.Vector2) -> ^Bullet {
+	sprite_sheet := sprite_sheet_new(rl.LoadTexture("assets/bullet.png"), 4, {32, 32})
+	sprite_sheet_set_animation(&sprite_sheet, "idle", {16, 0, 4})
+	sprite_sheet_play(&sprite_sheet, "idle")
 	bullet := Bullet {
-		position  = position,
-		direction = direction,
-		speed     = BULLET_SPEED,
-		size      = 4.0,
+		sprite_sheet = sprite_sheet,
+		position     = position,
+		direction    = direction,
+		speed        = BULLET_SPEED,
+		size         = 4.0,
 	}
 	append(&game.bullets, bullet)
 	return &game.bullets[len(&game.bullets) - 1]
@@ -44,6 +49,8 @@ bullet_process :: proc(game: ^Game, bullet: ^Bullet, dt: f32) {
 			game.score += 1
 		}
 	}
+
+  sprite_sheet_process(&bullet.sprite_sheet, dt)
 }
 
 bullet_check_collision :: proc(bullet: ^Bullet, enemy: ^Enemy) -> bool {
@@ -51,5 +58,5 @@ bullet_check_collision :: proc(bullet: ^Bullet, enemy: ^Enemy) -> bool {
 }
 
 bullet_draw :: proc(bullet: ^Bullet) {
-	rl.DrawCircleV(bullet.position, bullet.size, rl.WHITE)
+	sprite_sheet_draw(&bullet.sprite_sheet, bullet.position, scale = {1.5, 1.5})
 }

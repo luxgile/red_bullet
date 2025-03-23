@@ -21,7 +21,9 @@ MovementState :: enum {
 }
 
 Player :: struct {
+	sprite_sheet:   SpriteSheet,
 	input:          rl.Vector2,
+	prev_velocity:  rl.Vector2,
 	velocity:       rl.Vector2,
 	position:       rl.Vector2,
 	size:           f32,
@@ -34,9 +36,15 @@ Player :: struct {
 player_spawn :: proc(game: ^Game) -> (ok: bool) {
 	if game.player != nil do return false
 
+	sprite_sheet := sprite_sheet_new(rl.LoadTexture("assets/player.png"), 8, {32, 32})
+	sprite_sheet_set_animation(&sprite_sheet, "idle", {8, 0, 8})
+	sprite_sheet_set_animation(&sprite_sheet, "run", {12, 9, 16})
+	sprite_sheet_set_animation(&sprite_sheet, "dash", {8, 17, 24})
+	sprite_sheet_play(&sprite_sheet, "idle")
 	game.player = new(Player)
 	game.player^ = Player {
 		size = 15.0,
+		sprite_sheet = sprite_sheet,
 		weapon = &WeaponGun,
 		dash_vfx = VfxCpu {
 			is_one_shot = true,
@@ -70,11 +78,12 @@ player_input :: proc(game: ^Game, player: ^Player) {
 		time.stopwatch_reset(&player.dash_timer)
 		time.stopwatch_start(&player.dash_timer)
 		vfx_play(&player.dash_vfx)
+		sprite_sheet_play(&player.sprite_sheet, "dash")
 	}
 
 	if rl.IsMouseButtonPressed(.LEFT) && player.weapon != nil {
 		player.weapon.on_shoot_start(game, player.weapon)
-    player.weapon = nil
+		player.weapon = nil
 	}
 }
 
@@ -82,6 +91,9 @@ player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 	player.dash_vfx.position = player.position
 	vfx_process(&player.dash_vfx, dt)
 
+	sprite_sheet_process(&player.sprite_sheet, dt)
+
+	// Move weapon
 	if player.weapon != nil {
 		mouse_pos := rl.GetScreenToWorld2D(rl.GetMousePosition(), game.camera)
 		mouse_dir := linalg.normalize(mouse_pos - player.position)
@@ -89,26 +101,39 @@ player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 		player.weapon.direction = mouse_dir
 	}
 
-	if time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
+	// Stop dash
+	if player.movement_state == .Dashing && time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
 		player.movement_state = .Default
+    sprite_sheet_play(&player.sprite_sheet, "run")
 	}
 
+	// Movement
+	player.prev_velocity = player.velocity
 	if linalg.length(player.input) > 0.01 {
 		limit: f32 =
 			player.movement_state == .Default ? PLAYER_SPEED_LIMIT : PLAYER_DASH_SPEED_LIMIT
 		acceleration := linalg.normalize(player.input) * dt * PLAYER_ACC
 		player.velocity = linalg.clamp_length(player.velocity + acceleration, limit)
 	}
+
 	player.position += player.velocity * dt
 	player.velocity *= math.pow(PLAYER_DAMPING, dt)
+
+	ANIMATION_THRESHOLD :: 50.0
+	if player.movement_state == .Default {
+		if linalg.length(player.velocity) < ANIMATION_THRESHOLD &&
+		   linalg.length(player.prev_velocity) > ANIMATION_THRESHOLD {
+			sprite_sheet_play(&player.sprite_sheet, "idle")
+		}
+		if linalg.length(player.velocity) > ANIMATION_THRESHOLD &&
+		   linalg.length(player.prev_velocity) < ANIMATION_THRESHOLD {
+			sprite_sheet_play(&player.sprite_sheet, "run")
+		}
+	}
 }
 
 player_draw :: proc(player: ^Player) {
-	rl.DrawCircleV(
-		player.position,
-		player.size,
-		player.movement_state == .Default ? rl.GREEN : rl.DARKGREEN,
-	)
+	sprite_sheet_draw(&player.sprite_sheet, player.position, 0, invert_x = player.velocity.x < 0)
 
 	if player.weapon != nil {
 		player.weapon.on_draw(nil, player.weapon)

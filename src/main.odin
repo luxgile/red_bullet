@@ -7,6 +7,8 @@ import "core:strings"
 import time "core:time"
 import rl "vendor:raylib"
 
+DRAW_COLLISIONS :: false
+
 EventQueue :: [dynamic]rawptr
 
 EventTable :: struct {
@@ -37,6 +39,15 @@ on_event_with_data :: proc(event: TestEventWithData) {
 	fmt.println(event.msg)
 }
 
+CachedTexture :: struct {
+	texture: rl.Texture2D,
+	path:    cstring,
+}
+ctexture_get :: proc(texture: ^CachedTexture) -> rl.Texture2D {
+	if !rl.IsTextureValid(texture.texture) do texture.texture = rl.LoadTexture(texture.path)
+	return texture.texture
+}
+
 Game :: struct {
 	camera:        rl.Camera2D,
 	current_level: ^Level,
@@ -44,6 +55,9 @@ Game :: struct {
 	player:        ^Player,
 	bullets:       [dynamic]Bullet,
 	enemies:       [dynamic]Enemy,
+	pickups:       [dynamic]^WeaponPickup,
+	wave_timer:    f32,
+	wave_count:    f32,
 }
 
 main :: proc() {
@@ -60,7 +74,7 @@ main :: proc() {
 	// listen(TestEventWithData, proc(event: TestEventWithData) {fmt.println("Anonymous event!")})
 	// raise(TestEventWithData{msg = "Hello World from Event!"})
 
-	load_level(&game, &GameplayLevel)
+	load_level(&game, &MainMenuLevel)
 
 	for !rl.WindowShouldClose() {
 		dt := rl.GetFrameTime()
