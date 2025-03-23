@@ -56,6 +56,7 @@ Game :: struct {
 	bullets:       [dynamic]Bullet,
 	enemies:       [dynamic]Enemy,
 	pickups:       [dynamic]^WeaponPickup,
+	vfxs:          [dynamic]^VfxCpu,
 	wave_timer:    f32,
 	wave_count:    f32,
 }
@@ -102,3 +103,4 @@ load_level :: proc(using game: ^Game, level: ^Level) {
 	current_level = level
 	current_level.on_load(game)
 }
+

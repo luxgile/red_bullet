@@ -11,7 +11,7 @@ PLAYER_SPEED_LIMIT :: 200.0
 PLAYER_DAMPING :: 0.01
 
 PLAYER_DASH_FORCE :: 2000.0
-PLAYER_DASH_SPEED_LIMIT :: 500.0
+PLAYER_DASH_SPEED_LIMIT :: 350.0
 PLAYER_DASH_TIME :: 0.4
 
 MovementState :: enum {
@@ -52,10 +52,10 @@ player_spawn :: proc(game: ^Game) -> (ok: bool) {
 			duration = 0.2,
 			spawn_mode = SpawnCircle{radius = 1},
 			max_lifetime = 0.4,
-			max_particles = 100,
+			max_particles = 20,
 			size_mode = SizeOverLifetime{3.0, 0.0},
-			color_mode = ColorOverLifetime{rl.RED, {0, 0, 0, 0}},
-			spawn_velocity_mode = ExplosionSpawnVelocity{{100, 200}},
+			color_mode = ColorOverLifetime{rl.WHITE, {0, 0, 0, 0}},
+			spawn_velocity_mode = ExplosionSpawnVelocity{{50, 100}},
 			gravity = {0, 10},
 		},
 	}

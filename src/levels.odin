@@ -68,6 +68,10 @@ GameplayLevel := Level {
 			enemy_draw(&enemy)
 		}
 
+    for vfx in game.vfxs {
+      vfx_draw(vfx)
+    }
+
 		rl.EndMode2D()
 
 		rl.DrawText(
@@ -79,18 +83,18 @@ GameplayLevel := Level {
 		)
 	},
 	on_unload = proc(game: ^Game) {
-    game.wave_count = 0
-    game.wave_timer = 0
-    game.score = 0
-    clear(&game.enemies)
-    clear(&game.bullets)
-    for pickup in game.pickups {
-      free(pickup)
-    }
-    clear(&game.pickups)
+		game.wave_count = 0
+		game.wave_timer = 0
+		game.score = 0
+		clear(&game.enemies)
+		clear(&game.bullets)
+		for pickup in game.pickups {
+			free(pickup)
+		}
+		clear(&game.pickups)
 		rl.UnloadTexture(bg_texture)
 		// free(game.player)
-    game.player = nil
+		game.player = nil
 	},
 }
 
@@ -147,11 +151,25 @@ gameplay_process :: proc(game: ^Game, dt: f32) {
 		if enemy.is_dead {
 			should_spawn_pickup := len(game.pickups) == 0 || rand.float32() < 0.2
 			if should_spawn_pickup do wpickup_new(game, WeaponGunPickup, enemy.position)
+
+			death_vfx := new_clone(enemy.death_vfx)
+      death_vfx.position = enemy.position
+			vfx_play(death_vfx)
+			append(&game.vfxs, death_vfx)
+
 			unordered_remove(&game.enemies, index)
 			continue
 		}
 
 		enemy_process(game, &enemy, dt)
+	}
+
+	for vfx, index in game.vfxs {
+		vfx_process(vfx, dt)
+		if !vfx.is_running {
+			free(vfx)
+			unordered_remove(&game.vfxs, index)
+		}
 	}
 }
 

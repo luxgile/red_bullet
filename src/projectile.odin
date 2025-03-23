@@ -16,6 +16,8 @@ Bullet :: struct {
 	direction:      rl.Vector2,
 	size:           f32,
 	lifetime_timer: time.Stopwatch,
+	penetration:    u32,
+	hit_count:      u32,
 	is_dead:        bool,
 }
 
@@ -29,6 +31,7 @@ bullet_spawn :: proc(game: ^Game, position, direction: rl.Vector2) -> ^Bullet {
 		direction    = direction,
 		speed        = BULLET_SPEED,
 		size         = 4.0,
+    penetration = 2,
 	}
 	append(&game.bullets, bullet)
 	return &game.bullets[len(&game.bullets) - 1]
@@ -44,13 +47,14 @@ bullet_process :: proc(game: ^Game, bullet: ^Bullet, dt: f32) {
 
 	for &enemy in game.enemies {
 		if bullet_check_collision(bullet, &enemy) {
+      bullet.hit_count += 1
 			enemy.is_dead = true
-			bullet.is_dead = true
+			bullet.is_dead = bullet.hit_count >= bullet.penetration
 			game.score += 1
 		}
 	}
 
-  sprite_sheet_process(&bullet.sprite_sheet, dt)
+	sprite_sheet_process(&bullet.sprite_sheet, dt)
 }
 
 bullet_check_collision :: proc(bullet: ^Bullet, enemy: ^Enemy) -> bool {
