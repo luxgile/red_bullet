@@ -9,7 +9,7 @@
               "program": "C:\\00Dev\\20game_asteroids\\build\\Debug\\asteroids.exe"
             },
             "linux": {
-              "program": "${workspaceFolder}/src.bin"
+              "program": "${workspaceFolder}/red_bullet"
             }
         }
     ]

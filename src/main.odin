@@ -1,8 +1,13 @@
 package main
 
+// Emscripten template taken from: https://github.com/karl-zylinski/odin-raylib-hot-reload-game-template/tree/main
+
+import "base:runtime"
+import "core:c"
 import fmt "core:fmt"
 import math "core:math"
 import "core:math/linalg"
+import "core:mem"
 import "core:strings"
 import time "core:time"
 import rl "vendor:raylib"
@@ -49,6 +54,7 @@ ctexture_get :: proc(texture: ^CachedTexture) -> rl.Texture2D {
 }
 
 Game :: struct {
+	should_exit:   bool,
 	camera:        rl.Camera2D,
 	current_level: ^Level,
 	score:         int,
@@ -61,41 +67,79 @@ Game :: struct {
 	wave_count:    f32,
 }
 
-main :: proc() {
-	rl.SetConfigFlags({rl.ConfigFlag.WINDOW_RESIZABLE})
-	rl.InitWindow(1600, 900, "red bullet")
-	rl.SetTargetFPS(60)
-	defer rl.CloseWindow()
+@(private = "file")
+web_context: runtime.Context
 
-	game := Game {
+@(private = "file")
+game: Game
+
+when ODIN_OS != .JS {
+  main :: proc() {
+    main_start()
+    for main_update() {}
+    main_end()
+  }
+}
+
+@(export)
+main_start :: proc "c" () {
+	context = runtime.default_context()
+
+	context.allocator = emscripten_allocator()
+	runtime.init_global_temporary_allocator(1 * mem.Megabyte)
+
+	context.logger = create_emscripten_logger()
+
+	web_context = context
+	game = Game {
 		camera = rl.Camera2D{zoom = 2.0},
 	}
 
-	// listen(TestEventWithData, on_event_with_data)
-	// listen(TestEventWithData, proc(event: TestEventWithData) {fmt.println("Anonymous event!")})
-	// raise(TestEventWithData{msg = "Hello World from Event!"})
+	rl.SetConfigFlags({.WINDOW_RESIZABLE, .VSYNC_HINT})
+	rl.InitWindow(1600, 900, "red bullet")
+	rl.SetTargetFPS(60)
 
 	load_level(&game, &MainMenuLevel)
+}
 
-	for !rl.WindowShouldClose() {
-		dt := rl.GetFrameTime()
+@(export)
+main_update :: proc "c" () -> bool {
+	context = web_context
 
-		game.current_level.on_process(&game, dt)
+	dt := rl.GetFrameTime()
 
-		rl.BeginDrawing()
-		game.current_level.on_draw(&game)
-		rl.DrawFPS(10, 10)
-		rl.DrawText(
-			strings.clone_to_cstring(fmt.tprint("Level: ", game.current_level.name)),
-			(rl.GetScreenWidth() / 2) - 75,
-			10,
-			22,
-			rl.WHITE,
-		)
-		rl.EndDrawing()
-	}
+	game.current_level.on_process(&game, dt)
 
+
+	rl.BeginDrawing()
+	game.current_level.on_draw(&game)
+	rl.DrawFPS(10, 10)
+	rl.DrawText(
+		strings.clone_to_cstring(fmt.tprint("Level: ", game.current_level.name)),
+		(rl.GetScreenWidth() / 2) - 75,
+		10,
+		22,
+		rl.WHITE,
+	)
+	rl.EndDrawing()
+
+  keep_running := !game.should_exit
+  when ODIN_OS != .JS { keep_running &= !rl.WindowShouldClose() }
+
+	return keep_running
+}
+
+@(export)
+main_end :: proc "c" () {
+	context = web_context
 	game.current_level.on_unload(&game)
+	rl.CloseWindow()
+}
+
+@(export)
+web_window_size_changed :: proc "c" (w: c.int, h: c.int) {
+	context = web_context
+  rl.SetWindowSize(i32(w), i32(h))
 }
 
 load_level :: proc(using game: ^Game, level: ^Level) {
@@ -103,4 +147,3 @@ load_level :: proc(using game: ^Game, level: ^Level) {
 	current_level = level
 	current_level.on_load(game)
 }
-

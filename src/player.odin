@@ -28,7 +28,7 @@ Player :: struct {
 	position:       rl.Vector2,
 	size:           f32,
 	movement_state: MovementState,
-	dash_timer:     time.Stopwatch,
+	dash_timer:     f32,
 	dash_vfx:       VfxCpu,
 	weapon:         ^Weapon,
 }
@@ -71,12 +71,12 @@ player_input :: proc(game: ^Game, player: ^Player) {
 	if rl.IsKeyDown(.D) do input.x = 1
 	player.input = input
 
+
 	if rl.IsKeyPressed(.SPACE) && player.movement_state != .Dashing && linalg.length(input) > 0.1 {
 		direction := linalg.normalize(player.input)
 		player.velocity += PLAYER_DASH_FORCE * direction
 		player.movement_state = .Dashing
-		time.stopwatch_reset(&player.dash_timer)
-		time.stopwatch_start(&player.dash_timer)
+    player.dash_timer = 0
 		vfx_play(&player.dash_vfx)
 		sprite_sheet_play(&player.sprite_sheet, "dash")
 	}
@@ -101,8 +101,10 @@ player_process :: proc(game: ^Game, player: ^Player, dt: f32) {
 		player.weapon.direction = mouse_dir
 	}
 
+  if player.movement_state == .Dashing do player.dash_timer += dt
+
 	// Stop dash
-	if player.movement_state == .Dashing && time.duration_seconds(time.stopwatch_duration(player.dash_timer)) > PLAYER_DASH_TIME {
+	if player.movement_state == .Dashing && player.dash_timer > PLAYER_DASH_TIME {
 		player.movement_state = .Default
     sprite_sheet_play(&player.sprite_sheet, "run")
 	}

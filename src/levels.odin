@@ -34,7 +34,9 @@ main_menu_draw :: proc(game: ^Game) {
 	}
 	rl.GuiGroupBox({position.x, position.y, width, height}, nil)
 	if rl.GuiButton({position.x + 10, position.y + 10, width - 20, 50}, "Play") do load_level(game, &GameplayLevel)
-	if rl.GuiButton({position.x + 10, position.y + 70, width - 20, 50}, "Exit") do rl.CloseWindow()
+	when ODIN_OS != .JS {
+		if rl.GuiButton({position.x + 10, position.y + 70, width - 20, 50}, "Exit") do game.should_exit = true
+	}
 }
 
 bg_texture: rl.Texture2D
@@ -68,9 +70,9 @@ GameplayLevel := Level {
 			enemy_draw(&enemy)
 		}
 
-    for vfx in game.vfxs {
-      vfx_draw(vfx)
-    }
+		for vfx in game.vfxs {
+			vfx_draw(vfx)
+		}
 
 		rl.EndMode2D()
 
@@ -153,7 +155,7 @@ gameplay_process :: proc(game: ^Game, dt: f32) {
 			if should_spawn_pickup do wpickup_new(game, WeaponGunPickup, enemy.position)
 
 			death_vfx := new_clone(enemy.death_vfx)
-      death_vfx.position = enemy.position
+			death_vfx.position = enemy.position
 			vfx_play(death_vfx)
 			append(&game.vfxs, death_vfx)
 
