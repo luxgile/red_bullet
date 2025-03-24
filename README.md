@@ -14,3 +14,8 @@ Some features that I'd like to add but are missing:
 - More enemies (Mainly to avoid agrupations) 
 - More weapons
 
+
+## How to play?
+Given it's unfinished there's barely any content (A single weapon and a single enemy), so I don't recommend playing it. 
+
+If any soul out there (including me, from the future) wishes to play it regardless, it's as simple as running "build_release.sh".
